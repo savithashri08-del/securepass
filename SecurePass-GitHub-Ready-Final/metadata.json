@@ -1,0 +1,5 @@
+{
+  "name": "SecurePass \u2013 Password Management & Recovery Platform",
+  "description": "Enterprise-grade password management platform with AES-256-GCM vault encryption, TOTP multi-factor authentication, one-time recovery codes, and password strength analysis.",
+  "requestFramePermissions": []
+}

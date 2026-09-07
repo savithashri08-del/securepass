@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: securepass_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CLIENT_URL=http://localhost:3000
+      - DATABASE_URL=postgres://securepass:securepass_db_password@postgres:5432/securepass_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=prod_super_secure_jwt_secret_token_at_least_32_characters_random
+      - ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - MFA_ENCRYPTION_KEY=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - securepass_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: securepass_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: securepass_db
+      POSTGRES_USER: securepass
+      POSTGRES_PASSWORD: securepass_db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U securepass -d securepass_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - securepass_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: securepass_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - securepass_net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  securepass_net:
+    driver: bridge
